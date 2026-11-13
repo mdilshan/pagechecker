@@ -10,21 +10,24 @@ import (
 	"time"
 )
 
+// Document holds the response metadata. The body is not kept in memory,
+// it is streamed to the read callback of DownloadDoc instead.
 type Document struct {
-	Url       string
-	Status    int
-	Body      []byte
-	Truncated bool
+	Url    string
+	Status int
 }
 
 var client = &http.Client{Timeout: 30 * time.Second}
 
 const ACCEPT = "text/html"
 
-const maxBodySize = 5 << 20 // 5 MiB
+const maxBodySize = 5 << 20 // 5 MiB, read stops after this
 
+// DownloadDoc fetches url and, if it is HTML, calls read with the body
+// stream. The body is closed after read returns, so read must finish
+// with it before returning.
 func (d *Document) DownloadDoc(
-	ctx context.Context, url string,
+	ctx context.Context, url string, read func(io.Reader) error,
 ) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -70,17 +73,5 @@ func (d *Document) DownloadDoc(
 		return fmt.Errorf("not HTML: %q", mType)
 	}
 
-	// read one extra byte to know if the body was cut off
-	data, err := io.ReadAll(io.LimitReader(body, maxBodySize+1))
-	if err != nil {
-		return fmt.Errorf("read body: %w", err)
-	}
-
-	d.Truncated = len(data) > maxBodySize
-	if d.Truncated {
-		data = data[:maxBodySize]
-	}
-	d.Body = data
-
-	return nil
+	return read(io.LimitReader(body, maxBodySize))
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -92,7 +93,8 @@ func check(ctx context.Context, url string) LinkStatus {
 	status := LinkStatus{Url: url}
 
 	code, err := request(ctx, http.MethodHead, url)
-	if err == nil && code == http.StatusMethodNotAllowed {
+	if err == nil &&
+		code == http.StatusMethodNotAllowed || code == http.StatusNotFound {
 		// some servers don't allow HEAD so fallback to GET
 		code, err = request(ctx, http.MethodGet, url)
 	}
@@ -115,4 +117,13 @@ func request(ctx context.Context, method, url string) (int, error) {
 	resp.Body.Close() // we only need the status code
 
 	return resp.StatusCode, nil
+}
+
+// IsInternal reports if link points to the same host as the page.
+func IsInternal(link string, base *url.URL) bool {
+	u, err := url.Parse(link)
+	if err != nil {
+		return false
+	}
+	return strings.EqualFold(u.Host, base.Host)
 }

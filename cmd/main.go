@@ -2,10 +2,14 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"pagechecker/config"
+	"pagechecker/internal/analyzer"
 	"pagechecker/internal/downloader"
+	"pagechecker/internal/linkchecker"
 	"pagechecker/static"
 	"pagechecker/views"
 
@@ -43,25 +47,47 @@ func main() {
 			return
 		}
 
+		// the body is streamed straight into the analyzer, never kept
+		// in memory as a whole
+		var base *url.URL
+		var data analyzer.PageData
 		doc := downloader.Document{}
-		if err := doc.DownloadDoc(c, req.URL); err != nil {
+		err := doc.DownloadDoc(c, req.URL, func(r io.Reader) error {
+			// final url after redirects, relative links resolve against it
+			var err error
+			base, err = url.Parse(doc.Url)
+			if err != nil {
+				return err
+			}
+
+			data, err = analyzer.Analyze(r, base)
+			return err
+		})
+		if err != nil {
 			views.RenderHtml(c, http.StatusBadGateway,
 				views.ErrorPage(req.URL, err.Error()))
 			return
 		}
 
-		// TODO: replace with real analysis of the submitted URL.
+		statuses := linkchecker.Check(c, data.Links)
+
+		links := views.LinkStats{Inaccessible: len(data.MalformedLinks)}
+		for _, s := range statuses {
+			if linkchecker.IsInternal(s.Url, base) {
+				links.Internal++
+			} else {
+				links.External++
+			}
+			if !s.Accessible() {
+				links.Inaccessible++
+			}
+		}
+
 		result := views.Result{
 			URL:         req.URL,
-			HTMLVersion: "HTML5",
-			Title:       "Example Domain",
-			Headings:    views.HeadingCounts{1, 4, 7, 0, 0, 0},
-			Links: views.LinkStats{
-				Internal:     12,
-				External:     5,
-				Inaccessible: 2,
-			},
-			HasLoginForm: true,
+			HTMLVersion: data.HTMLVersion,
+			Title:       data.Title,
+			Links:       links,
 		}
 		views.RenderHtml(c, http.StatusOK, views.ResultPage(result))
 	})

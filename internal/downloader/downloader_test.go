@@ -4,6 +4,8 @@ package downloader
 
 import (
 	"context"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -36,6 +38,21 @@ func withContentType(contentType, body string) http.HandlerFunc {
 	}
 }
 
+// readInto returns a read callback that stores the body in got.
+func readInto(got *string) func(io.Reader) error {
+	return func(r io.Reader) error {
+		b, err := io.ReadAll(r)
+		*got = string(b)
+		return err
+	}
+}
+
+// discard is a read callback that ignores the body.
+func discard(r io.Reader) error {
+	_, err := io.Copy(io.Discard, r)
+	return err
+}
+
 // go test ./internal/downloader/ -v -run TestDownloadDoc_Success
 func TestDownloadDoc_Success(t *testing.T) {
 	tests := []struct {
@@ -56,18 +73,17 @@ func TestDownloadDoc_Success(t *testing.T) {
 			srv := newServer(t, tt.handler)
 
 			var d Document
-			err := d.DownloadDoc(context.Background(), srv.URL)
+			var got string
+			err := d.DownloadDoc(context.Background(), srv.URL,
+				readInto(&got))
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			if d.Status != http.StatusOK {
 				t.Errorf("Status = %d, want %d", d.Status, http.StatusOK)
 			}
-			if string(d.Body) != tt.body {
-				t.Errorf("Body = %q, want %q", d.Body, tt.body)
-			}
-			if d.Truncated {
-				t.Error("Truncated = true, want false")
+			if got != tt.body {
+				t.Errorf("Body = %q, want %q", got, tt.body)
 			}
 			if d.Url != srv.URL {
 				t.Errorf("Url = %q, want %q", d.Url, srv.URL)
@@ -101,10 +117,16 @@ func TestDownloadDoc_Errors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			srv := newServer(t, tt.handler)
 
+			called := false
+			read := func(r io.Reader) error { called = true; return nil }
+
 			var d Document
-			err := d.DownloadDoc(context.Background(), srv.URL)
+			err := d.DownloadDoc(context.Background(), srv.URL, read)
 			if err == nil {
 				t.Fatal("expected an error, got nil")
+			}
+			if called {
+				t.Error("read was called for a failed download")
 			}
 			if !strings.Contains(err.Error(), tt.wantErr) {
 				t.Errorf("error = %q, want it to contain %q", err, tt.wantErr)
@@ -113,37 +135,33 @@ func TestDownloadDoc_Errors(t *testing.T) {
 	}
 }
 
-func TestDownloadDoc_Truncated(t *testing.T) {
-	big := "<html><body>" + strings.Repeat("a", maxBodySize) + "</body></html>"
+// go test ./internal/downloader/ -v -run TestDownloadDoc_SizeLimit
+func TestDownloadDoc_SizeLimit(t *testing.T) {
+	big := "<html><body>" + strings.Repeat("a", maxBodySize) +
+		"</body></html>"
 	srv := newServer(t, withContentType("text/html", big))
 
 	var d Document
-	err := d.DownloadDoc(context.Background(), srv.URL)
+	var got string
+	err := d.DownloadDoc(context.Background(), srv.URL, readInto(&got))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !d.Truncated {
-		t.Error("Truncated = false, want true")
-	}
-	if len(d.Body) != maxBodySize {
-		t.Errorf("len(Body) = %d, want %d", len(d.Body), maxBodySize)
+	if len(got) != maxBodySize {
+		t.Errorf("read %d bytes, want %d", len(got), maxBodySize)
 	}
 }
 
-func TestDownloadDoc_ExactlyMaxSizeNotTruncated(t *testing.T) {
-	body := "<html>" + strings.Repeat("a", maxBodySize-len("<html>"))
-	srv := newServer(t, withContentType("text/html", body))
+// go test ./internal/downloader/ -v -run TestDownloadDoc_ReadError
+func TestDownloadDoc_ReadError(t *testing.T) {
+	srv := newServer(t, withContentType("text/html", page))
+	readErr := errors.New("tokenizer failed")
 
 	var d Document
-	err := d.DownloadDoc(context.Background(), srv.URL)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if d.Truncated {
-		t.Error("Truncated = true, want false")
-	}
-	if len(d.Body) != maxBodySize {
-		t.Errorf("len(Body) = %d, want %d", len(d.Body), maxBodySize)
+	err := d.DownloadDoc(context.Background(), srv.URL,
+		func(r io.Reader) error { return readErr })
+	if !errors.Is(err, readErr) {
+		t.Errorf("error = %v, want %v", err, readErr)
 	}
 }
 
@@ -156,7 +174,7 @@ func TestDownloadDoc_FollowsRedirect(t *testing.T) {
 	srv := newServer(t, mux.ServeHTTP)
 
 	var d Document
-	err := d.DownloadDoc(context.Background(), srv.URL+"/old")
+	err := d.DownloadDoc(context.Background(), srv.URL+"/old", discard)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -173,7 +191,8 @@ func TestDownloadDoc_SendsAcceptHeader(t *testing.T) {
 	})
 
 	var d Document
-	if err := d.DownloadDoc(context.Background(), srv.URL); err != nil {
+	err := d.DownloadDoc(context.Background(), srv.URL, discard)
+	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if got != ACCEPT {
@@ -183,7 +202,7 @@ func TestDownloadDoc_SendsAcceptHeader(t *testing.T) {
 
 func TestDownloadDoc_InvalidURL(t *testing.T) {
 	var d Document
-	err := d.DownloadDoc(context.Background(), "://bad-url")
+	err := d.DownloadDoc(context.Background(), "://bad-url", discard)
 	if err == nil || !strings.Contains(err.Error(), "build request") {
 		t.Errorf("error = %v, want a build request error", err)
 	}
@@ -196,7 +215,7 @@ func TestDownloadDoc_CanceledContext(t *testing.T) {
 	cancel()
 
 	var d Document
-	err := d.DownloadDoc(ctx, srv.URL)
+	err := d.DownloadDoc(ctx, srv.URL, discard)
 	if err == nil || !strings.Contains(err.Error(), "request") {
 		t.Errorf("error = %v, want a request error", err)
 	}
