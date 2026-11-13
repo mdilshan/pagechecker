@@ -26,6 +26,15 @@ func main() {
 		panic(err)
 	}
 
+	r := setupRouter()
+
+	if err := r.Run(fmt.Sprintf(":%d", cfg.Server.ServerPort)); err != nil {
+		log.Fatalf("failed to run server: %v", err)
+	}
+}
+
+// setupRouter registers all routes, split out of main so tests can use it.
+func setupRouter() *gin.Engine {
 	r := gin.Default()
 
 	r.StaticFS("/static", http.FS(static.FS))
@@ -99,7 +108,5 @@ func main() {
 		views.RenderHtml(c, http.StatusOK, views.ResultPage(result))
 	})
 
-	if err := r.Run(fmt.Sprintf(":%d", cfg.Server.ServerPort)); err != nil {
-		log.Fatalf("failed to run server: %v", err)
-	}
+	return r
 }

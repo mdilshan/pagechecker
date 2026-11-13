@@ -1,3 +1,4 @@
 bin
 **/*_templ.go
 tmp
+cover.out

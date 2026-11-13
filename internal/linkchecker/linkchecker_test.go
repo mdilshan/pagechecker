@@ -6,6 +6,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -162,5 +163,17 @@ func TestCheck_CanceledContext(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("Check did not return after the context was canceled")
+	}
+}
+
+// go test ./internal/linkchecker/ -v -run TestIsInternal
+func TestIsInternal(t *testing.T) {
+	base, _ := url.Parse("https://example.com/page")
+
+	if !IsInternal("https://example.com/about", base) {
+		t.Error("same host should be internal")
+	}
+	if IsInternal("https://other.com/", base) {
+		t.Error("other host should be external")
 	}
 }
