@@ -13,6 +13,8 @@ type PageData struct {
 	Title          string
 	Links          []string
 	MalformedLinks []string
+	Headings       map[string]int
+	HasLoginForm   bool
 }
 
 // links will be only extracted from following configurations
@@ -25,7 +27,7 @@ var linkAttrs = map[string]string{
 // On large user base it could exhause memory
 // instead, read directly from the response stream
 func Analyze(r io.Reader, base *url.URL) (PageData, error) {
-	var data PageData
+	data := PageData{Headings: map[string]int{}}
 	inHead := false
 	inTitle := false
 
@@ -51,6 +53,16 @@ func Analyze(r io.Reader, base *url.URL) (PageData, error) {
 				inHead = true
 			case "title":
 				inTitle = inHead // svgs can also have title. so need head tracking
+			case "h1", "h2", "h3", "h4", "h5", "h6":
+				data.Headings[token.Data]++
+			case "input":
+				// simple login detection via password field
+				// Future improvement could be implement over URL path, Social Login, Redirections (403)
+				for _, a := range token.Attr {
+					if a.Key == "type" && strings.EqualFold(a.Val, "password") {
+						data.HasLoginForm = true
+					}
+				}
 			}
 
 			if attr, ok := linkAttrs[token.Data]; ok {

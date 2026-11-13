@@ -83,11 +83,18 @@ func main() {
 			}
 		}
 
+		var headings views.HeadingCounts
+		for i := range headings {
+			headings[i] = data.Headings[fmt.Sprintf("h%d", i+1)]
+		}
+
 		result := views.Result{
-			URL:         req.URL,
-			HTMLVersion: data.HTMLVersion,
-			Title:       data.Title,
-			Links:       links,
+			URL:          req.URL,
+			HTMLVersion:  data.HTMLVersion,
+			Title:        data.Title,
+			Links:        links,
+			Headings:     headings,
+			HasLoginForm: data.HasLoginForm,
 		}
 		views.RenderHtml(c, http.StatusOK, views.ResultPage(result))
 	})
