@@ -11,6 +11,9 @@
   --ok-bg: #dcfce7;
   --warn: #b45309;
   --warn-bg: #fef3c7;
+  --err: #b91c1c;
+  --err-bg: #fef2f2;
+  --err-border: #fecaca;
   --radius: 8px;
 }
 
@@ -85,6 +88,17 @@ h2 { margin: 0 0 0.75rem; font-size: 1rem; }
 }
 
 .check-form button:hover { background: var(--accent-hover); }
+
+/* Error */
+.alert {
+  padding: 1rem;
+  color: var(--err);
+  background: var(--err-bg);
+  border: 1px solid var(--err-border);
+  border-radius: var(--radius);
+}
+
+.alert p { margin: 0.25rem 0 0; overflow-wrap: anywhere; }
 
 /* Result */
 .result > .muted { margin: 0 0 1rem; overflow-wrap: anywhere; }

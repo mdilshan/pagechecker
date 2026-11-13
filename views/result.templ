@@ -1,11 +1,37 @@
 package views
 
-import (
-	"fmt"
-	"pagechecker/analyzer"
-)
+import "fmt"
 
-templ ResultPage(r analyzer.Result) {
+type Result struct {
+	URL          string
+	HTMLVersion  string
+	Title        string
+	Headings     HeadingCounts
+	Links        LinkStats
+	HasLoginForm bool
+}
+
+type HeadingCounts [6]int
+
+func (h HeadingCounts) Total() int {
+	total := 0
+	for _, n := range h {
+		total += n
+	}
+	return total
+}
+
+type LinkStats struct {
+	Internal     int
+	External     int
+	Inaccessible int
+}
+
+func (l LinkStats) Total() int {
+	return l.Internal + l.External
+}
+
+templ ResultPage(r Result) {
 	@Layout("Results") {
 		@CheckForm(r.URL)
 		<section class="result">

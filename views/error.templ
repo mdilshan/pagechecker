@@ -1,0 +1,11 @@
+package views
+
+templ ErrorPage(url string, message string) {
+	@Layout("Error") {
+		@CheckForm(url)
+		<div class="alert">
+			<strong>Could not analyze the page.</strong>
+			<p>{ message }</p>
+		</div>
+	}
+}
