@@ -5,6 +5,9 @@ import (
 	"log"
 	"net/http"
 	"pagechecker/config"
+	"pagechecker/views"
+
+	_ "pagechecker/views"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,6 +24,10 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "pong",
 		})
+	})
+
+	r.GET("/", func(c *gin.Context) {
+		views.RenderHtml(c, http.StatusOK, views.Layout())
 	})
 
 	if err := r.Run(fmt.Sprintf(":%d", cfg.Server.ServerPort)); err != nil {
