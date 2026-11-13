@@ -8,9 +8,16 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
+	"time"
 )
+
+func TestMain(m *testing.M) {
+	Init(10*time.Second, 5)
+	os.Exit(m.Run())
+}
 
 const page = "<!DOCTYPE html><html><head><title>Test</title></head>" +
 	"<body><h1>Hi</h1></body></html>"

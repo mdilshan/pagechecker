@@ -23,13 +23,19 @@ func (s LinkStatus) Accessible() bool {
 
 var ErrUnsupportedScheme = errors.New("unsupported scheme, not checked")
 
-var client = &http.Client{Timeout: 10 * time.Second}
+var client = &http.Client{}
 
 // per request total workers
-var workers = 10
+var workers int
 
 // total links check across entire server concurrently
-var outbound = make(chan struct{}, 100)
+var outbound chan struct{}
+
+func Init(timeout time.Duration, perRequest, maxConcurrent int) {
+	client.Timeout = timeout
+	workers = perRequest
+	outbound = make(chan struct{}, maxConcurrent)
+}
 
 func Check(ctx context.Context, links []string) []LinkStatus {
 	jobs := make(chan string) // unbuffered, a send waits for a free worker

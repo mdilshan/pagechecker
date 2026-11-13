@@ -26,6 +26,10 @@ func main() {
 		panic(err)
 	}
 
+	downloader.Init(cfg.Downloader.Timeout, cfg.Downloader.MaxBodyMB)
+	linkchecker.Init(cfg.LinkChecker.Timeout,
+		cfg.LinkChecker.Workers, cfg.LinkChecker.MaxConcurrent)
+
 	r := setupRouter()
 
 	if err := r.Run(fmt.Sprintf(":%d", cfg.Server.ServerPort)); err != nil {

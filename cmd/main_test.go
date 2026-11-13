@@ -9,9 +9,26 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"pagechecker/config"
+	"pagechecker/internal/downloader"
+	"pagechecker/internal/linkchecker"
 	"strings"
 	"testing"
 )
+
+// same setup as main(), values come from config.ini
+func TestMain(m *testing.M) {
+	cfg, err := config.Load("")
+	if err != nil {
+		panic(err)
+	}
+	downloader.Init(cfg.Downloader.Timeout, cfg.Downloader.MaxBodyMB)
+	linkchecker.Init(cfg.LinkChecker.Timeout,
+		cfg.LinkChecker.Workers, cfg.LinkChecker.MaxConcurrent)
+
+	os.Exit(m.Run())
+}
 
 const fakePage = `<!DOCTYPE html>
 <html><head><title>Fake Site</title></head>

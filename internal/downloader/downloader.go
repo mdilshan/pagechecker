@@ -17,11 +17,16 @@ type Document struct {
 	Status int
 }
 
-var client = &http.Client{Timeout: 30 * time.Second}
+var client = &http.Client{}
 
 const ACCEPT = "text/html"
 
-const maxBodySize = 5 << 20 // 5 MiB, read stops after this
+var maxBodySize int // bytes, read stops after this
+
+func Init(timeout time.Duration, maxBodyMB int) {
+	client.Timeout = timeout
+	maxBodySize = maxBodyMB << 20
+}
 
 // DownloadDoc fetches url and, if it is HTML, calls read with the body
 // stream. The body is closed after read returns, so read must finish
@@ -73,5 +78,5 @@ func (d *Document) DownloadDoc(
 		return fmt.Errorf("not HTML: %q", mType)
 	}
 
-	return read(io.LimitReader(body, maxBodySize))
+	return read(io.LimitReader(body, int64(maxBodySize)))
 }

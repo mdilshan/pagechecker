@@ -7,11 +7,17 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 )
+
+func TestMain(m *testing.M) {
+	Init(10*time.Second, 10, 100)
+	os.Exit(m.Run())
+}
 
 func newServer(t *testing.T) *httptest.Server {
 	t.Helper()
