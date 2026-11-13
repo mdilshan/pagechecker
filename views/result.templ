@@ -1,0 +1,73 @@
+package views
+
+import (
+	"fmt"
+	"pagechecker/analyzer"
+)
+
+templ ResultPage(r analyzer.Result) {
+	@Layout("Results") {
+		@CheckForm(r.URL)
+		<section class="result">
+			<p class="muted">Results for <a href={ templ.SafeURL(r.URL) } target="_blank" rel="noopener">{ r.URL }</a></p>
+			<div class="cards">
+				<div class="card">
+					<span class="label">HTML version</span>
+					<span class="value">{ r.HTMLVersion }</span>
+				</div>
+				<div class="card">
+					<span class="label">Login form</span>
+					if r.HasLoginForm {
+						<span class="value badge badge-yes">Yes</span>
+					} else {
+						<span class="value badge badge-no">No</span>
+					}
+				</div>
+				<div class="card card-wide">
+					<span class="label">Page title</span>
+					<span class="value">
+						if r.Title != "" {
+							{ r.Title }
+						} else {
+							<span class="muted">No title</span>
+						}
+					</span>
+				</div>
+			</div>
+			<div class="panels">
+				<div class="panel">
+					<h2>Headings <span class="count">{ fmt.Sprint(r.Headings.Total()) }</span></h2>
+					<table>
+						<tbody>
+							for i, n := range r.Headings {
+								<tr>
+									<th>{ fmt.Sprintf("h%d", i+1) }</th>
+									<td>{ fmt.Sprint(n) }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+				<div class="panel">
+					<h2>Links <span class="count">{ fmt.Sprint(r.Links.Total()) }</span></h2>
+					<table>
+						<tbody>
+							<tr>
+								<th>Internal</th>
+								<td>{ fmt.Sprint(r.Links.Internal) }</td>
+							</tr>
+							<tr>
+								<th>External</th>
+								<td>{ fmt.Sprint(r.Links.External) }</td>
+							</tr>
+							<tr class={ templ.KV("warn", r.Links.Inaccessible > 0) }>
+								<th>Inaccessible</th>
+								<td>{ fmt.Sprint(r.Links.Inaccessible) }</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</section>
+	}
+}

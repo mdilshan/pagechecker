@@ -1,11 +1,28 @@
 package views
 
-templ Layout() {
+templ Layout(title string) {
 	<!DOCTYPE html>
-	<html>
-		<head><title>PageChecker</title></head>
+	<html lang="en">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>{ title } · PageChecker</title>
+			<link rel="stylesheet" href="/static/css/style.css"/>
+		</head>
 		<body>
-			<h1>Hello User</h1>
+			<header class="site-header">
+				<a href="/" class="brand">PageChecker</a>
+			</header>
+			<main class="container">
+				{ children... }
+			</main>
 		</body>
 	</html>
+}
+
+templ CheckForm(url string) {
+	<form class="check-form" method="post" action="/analyze">
+		<input type="url" name="siteurl" value={ url } placeholder="https://example.com" required/>
+		<button type="submit">Check</button>
+	</form>
 }
