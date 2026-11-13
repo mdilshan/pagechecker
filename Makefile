@@ -12,7 +12,7 @@ dev:
 test:
 	go test ./cmd/ ./internal/... ./config/ ./views/
 
-# unit tests + the integration test in cmd/
+# unit tests + the integration
 cover:
 	go test -coverprofile=cover.out ./cmd/ ./internal/... ./config/ ./views/
 	go tool cover -func=cover.out

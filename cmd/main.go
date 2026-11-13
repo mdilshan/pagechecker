@@ -33,7 +33,6 @@ func main() {
 	}
 }
 
-// setupRouter registers all routes, split out of main so tests can use it.
 func setupRouter() *gin.Engine {
 	r := gin.Default()
 
@@ -62,7 +61,6 @@ func setupRouter() *gin.Engine {
 		var data analyzer.PageData
 		doc := downloader.Document{}
 		err := doc.DownloadDoc(c, req.URL, func(r io.Reader) error {
-			// final url after redirects, relative links resolve against it
 			var err error
 			base, err = url.Parse(doc.Url)
 			if err != nil {

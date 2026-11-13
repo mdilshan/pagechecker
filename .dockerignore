@@ -1,0 +1,5 @@
+.git
+bin
+tmp
+cover.out
+**/*_templ.go
