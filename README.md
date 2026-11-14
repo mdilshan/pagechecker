@@ -2,6 +2,57 @@
 
 analyze a web page. shows html version, title, headings, links and whether it has a login form.
 
+build steps, assumptions and possible improvements are in [NOTES.md](NOTES.md).
+
+## how it works
+
+```mermaid
+flowchart LR
+    U[browser] -->|POST /analyze| H[gin handler<br/>goroutine per request]
+    H --> D[downloader]
+    D -->|GET| S[(target site)]
+    D -->|body stream| A[analyzer<br/>html tokenizer]
+    A -->|title, headings,<br/>links, login form| H
+    H -->|links| J
+
+    subgraph LC [linkchecker, per request]
+        J[jobs chan<br/>unbuffered] --> W1[worker]
+        J --> W2[worker]
+        J --> W3[worker ...10]
+    end
+
+    W1 & W2 & W3 --> O[[outbound slots<br/>100, shared by all requests]]
+    O -->|HEAD / GET| L[(linked sites)]
+    LC -->|statuses| H
+    H -->|result page| U
+```
+
+concurrency lives in two places. gin runs every request in its own goroutine,
+and the linkchecker runs workers inside each request.
+
+### streaming, the page is never fully in memory
+
+the downloader doesn't read the whole body into a `[]byte`. it hands the
+response stream to the analyzer, and the html tokenizer reads it in small
+chunks. we only keep what we need: title, heading counts, links and the login
+flag. so memory per request stays small even for big pages, and the stream is
+capped at `max_body_mb` anyway.
+
+### bounded worker pool for link checking
+
+checking links is the slow part, so it runs in parallel but bounded:
+
+- every request starts its own `workers` and feeds links through an
+  unbuffered channel. a link is only handed out when a worker is free
+- before calling a link, a worker takes a slot from `outbound`, a buffered
+  channel shared by the whole server (100). so no matter how many users, at
+  most 100 links are checked at once
+- workers stop when the request is done, a `sync.WaitGroup` waits for them
+- if the user leaves, the request context is canceled and the rest of the links
+  are skipped
+- links are checked with HEAD, GET if the site doesn't allow HEAD. every link
+  gets a status, inaccessible ones are logged with the status code
+
 ## run dev server
 
 install tools first
