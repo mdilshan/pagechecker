@@ -3,7 +3,7 @@ package linkchecker
 import (
 	"context"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -70,8 +70,8 @@ func Check(ctx context.Context, links []string) []LinkStatus {
 	statuses := make([]LinkStatus, 0, len(results))
 	for s := range results {
 		if !s.Accessible() {
-			log.Printf("link not accessible: %s status=%d err=%v",
-				s.Url, s.StatusCode, s.Err)
+			slog.Warn("link not accessible",
+				"url", s.Url, "status", s.StatusCode, "err", s.Err)
 		}
 		statuses = append(statuses, s)
 	}

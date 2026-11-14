@@ -4,10 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"pagechecker/config"
 	"pagechecker/internal/analyzer"
 	"pagechecker/internal/downloader"
@@ -24,9 +25,12 @@ type analyzeRequest struct {
 }
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
+
 	cfg, err := config.Load("")
 	if err != nil {
-		panic(err)
+		slog.Error("failed to load config", "err", err)
+		os.Exit(1)
 	}
 
 	downloader.Init(cfg.Downloader.Timeout, cfg.Downloader.MaxBodyMB)
@@ -35,8 +39,10 @@ func main() {
 
 	r := setupRouter()
 
+	slog.Info("server starting", "port", cfg.Server.ServerPort)
 	if err := r.Run(fmt.Sprintf(":%d", cfg.Server.ServerPort)); err != nil {
-		log.Fatalf("failed to run server: %v", err)
+		slog.Error("failed to run server", "err", err)
+		os.Exit(1)
 	}
 }
 
@@ -123,7 +129,6 @@ func setupRouter() *gin.Engine {
 	return r
 }
 
-// errorMessage turns a download error into something a user can act on.
 func errorMessage(status int, err error) string {
 	var dnsErr *net.DNSError
 	var netErr net.Error
