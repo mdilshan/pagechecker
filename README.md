@@ -102,6 +102,13 @@ docker too
 PAGECHECKER_CONFIG=./prod.ini go run ./cmd
 ```
 
+## tests
+
+`make test` runs everything, `make cover` shows coverage (~95% of functions).
+unit tests use local `httptest` servers, no real http calls.
+`cmd/main_test.go` is the integration test: it runs the real router,
+downloader, analyzer and link checker together against a fake local site.
+
 ## pprof
 
 when `pprof = true` it's served on the same port
