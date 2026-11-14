@@ -18,6 +18,7 @@ type PageData struct {
 }
 
 // links will be only extracted from following configurations
+// Might come from back office admin config or user setting
 var linkAttrs = map[string]string{
 	"a":   "href",
 	"img": "src",

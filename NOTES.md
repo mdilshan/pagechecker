@@ -31,6 +31,14 @@
   reached. redirects are followed, so a 301 to a working page is fine.
   `mailto:`, `tel:`, `javascript:` links are not checked and count as
   inaccessible, malformed links too
+- **link counting** by deafult it counts only <a> and <img> links only.
+```go
+var linkAttrs = map[string]string{
+	"a":   "href",
+	"img": "src",
+}
+```
+
 
 ## possible improvements
 
