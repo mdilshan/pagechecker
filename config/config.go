@@ -13,7 +13,8 @@ var defaultIni []byte
 
 type Config struct {
 	Server struct {
-		ServerPort int `ini:"port"`
+		ServerPort int  `ini:"port"`
+		Pprof      bool `ini:"pprof"`
 	}
 	Downloader struct {
 		Timeout   time.Duration `ini:"timeout"`

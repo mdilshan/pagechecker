@@ -58,7 +58,7 @@ func postAnalyze(siteurl string) *httptest.ResponseRecorder {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	w := httptest.NewRecorder()
-	setupRouter().ServeHTTP(w, req)
+	setupRouter(false).ServeHTTP(w, req)
 	return w
 }
 

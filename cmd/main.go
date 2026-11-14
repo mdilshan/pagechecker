@@ -17,7 +17,9 @@ import (
 	"pagechecker/views"
 	"syscall"
 
+	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
+	_ "net/http/pprof"
 )
 
 type analyzeRequest struct {
@@ -27,7 +29,7 @@ type analyzeRequest struct {
 func main() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 
-	cfg, err := config.Load("")
+	cfg, err := config.Load(os.Getenv("PAGECHECKER_CONFIG"))
 	if err != nil {
 		slog.Error("failed to load config", "err", err)
 		os.Exit(1)
@@ -37,7 +39,7 @@ func main() {
 	linkchecker.Init(cfg.LinkChecker.Timeout,
 		cfg.LinkChecker.Workers, cfg.LinkChecker.MaxConcurrent)
 
-	r := setupRouter()
+	r := setupRouter(cfg.Server.Pprof)
 
 	slog.Info("server starting", "port", cfg.Server.ServerPort)
 	if err := r.Run(fmt.Sprintf(":%d", cfg.Server.ServerPort)); err != nil {
@@ -46,8 +48,12 @@ func main() {
 	}
 }
 
-func setupRouter() *gin.Engine {
+func setupRouter(enablePprof bool) *gin.Engine {
 	r := gin.Default()
+
+	if enablePprof {
+		pprof.Register(r)
+	}
 
 	r.StaticFS("/static", http.FS(static.FS))
 
