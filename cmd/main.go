@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"pagechecker/config"
@@ -12,6 +14,7 @@ import (
 	"pagechecker/internal/linkchecker"
 	"pagechecker/static"
 	"pagechecker/views"
+	"syscall"
 
 	"github.com/gin-gonic/gin"
 )
@@ -55,7 +58,9 @@ func setupRouter() *gin.Engine {
 	r.POST("/analyze", func(c *gin.Context) {
 		var req analyzeRequest
 		if err := c.ShouldBind(&req); err != nil {
-			c.String(http.StatusBadRequest, "invalid url")
+			views.RenderHtml(c, http.StatusBadRequest,
+				views.ErrorPage(req.URL, 0,
+					"Please enter a full url, like https://example.com", ""))
 			return
 		}
 
@@ -75,8 +80,13 @@ func setupRouter() *gin.Engine {
 			return err
 		})
 		if err != nil {
+			status := 0
+			if doc.Status >= 400 {
+				status = doc.Status
+			}
 			views.RenderHtml(c, http.StatusBadGateway,
-				views.ErrorPage(req.URL, err.Error()))
+				views.ErrorPage(req.URL, status,
+					errorMessage(status, err), err.Error()))
 			return
 		}
 
@@ -111,4 +121,31 @@ func setupRouter() *gin.Engine {
 	})
 
 	return r
+}
+
+// errorMessage turns a download error into something a user can act on.
+func errorMessage(status int, err error) string {
+	var dnsErr *net.DNSError
+	var netErr net.Error
+
+	switch {
+	case status == http.StatusNotFound:
+		return "The page does not exist on that site."
+	case status == http.StatusUnauthorized || status == http.StatusForbidden:
+		return "The site does not allow access to this page."
+	case status >= 500:
+		return "The site has a problem on its side, try again later."
+	case status >= 400:
+		return "The site refused the request."
+	case errors.Is(err, downloader.ErrNotHTML):
+		return "The url does not point to an html page."
+	case errors.As(err, &dnsErr):
+		return "The host could not be found, check the url."
+	case errors.As(err, &netErr) && netErr.Timeout():
+		return "The site took too long to respond."
+	case errors.Is(err, syscall.ECONNREFUSED):
+		return "The site refused the connection."
+	default:
+		return "The site could not be reached."
+	}
 }

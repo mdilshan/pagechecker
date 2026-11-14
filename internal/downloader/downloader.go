@@ -3,6 +3,7 @@ package downloader
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -20,6 +21,8 @@ type Document struct {
 var client = &http.Client{}
 
 const ACCEPT = "text/html"
+
+var ErrNotHTML = errors.New("not HTML")
 
 var maxBodySize int // bytes, read stops after this
 
@@ -75,7 +78,7 @@ func (d *Document) DownloadDoc(
 		return fmt.Errorf("mime detection %w", err)
 	}
 	if mType != ACCEPT {
-		return fmt.Errorf("not HTML: %q", mType)
+		return fmt.Errorf("%w: %q", ErrNotHTML, mType)
 	}
 
 	return read(io.LimitReader(body, int64(maxBodySize)))

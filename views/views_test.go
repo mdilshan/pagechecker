@@ -53,9 +53,10 @@ func TestResultPage(t *testing.T) {
 
 func TestErrorPage(t *testing.T) {
 	var buf bytes.Buffer
-	ErrorPage("", "status 404").Render(context.Background(), &buf)
+	ErrorPage("", 404, "The page does not exist.", "status 404").
+		Render(context.Background(), &buf)
 
-	if !strings.Contains(buf.String(), "status 404") {
-		t.Error("error message is missing")
+	if !strings.Contains(buf.String(), "404 Not Found") {
+		t.Error("status is missing")
 	}
 }

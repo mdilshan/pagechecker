@@ -86,7 +86,7 @@ func TestAnalyze_PageNotFound(t *testing.T) {
 	if w.Code != http.StatusBadGateway {
 		t.Errorf("status = %d, want 502", w.Code)
 	}
-	if !strings.Contains(w.Body.String(), "status 404") {
+	if !strings.Contains(w.Body.String(), "404 Not Found") {
 		t.Error("error page should show the 404")
 	}
 }

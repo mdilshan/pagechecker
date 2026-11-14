@@ -1,11 +1,25 @@
 package views
 
-templ ErrorPage(url string, message string) {
+import (
+	"fmt"
+	"net/http"
+)
+
+// status is the http status of the analyzed page, 0 when there was none.
+// detail is the raw error, shown small under the message.
+templ ErrorPage(url string, status int, message string, detail string) {
 	@Layout("Error") {
 		@CheckForm(url)
 		<div class="alert">
-			<strong>Could not analyze the page.</strong>
+			if status != 0 {
+				<strong>{ fmt.Sprintf("%d %s", status, http.StatusText(status)) }</strong>
+			} else {
+				<strong>Could not analyze the page.</strong>
+			}
 			<p>{ message }</p>
+			if detail != "" {
+				<p class="detail">{ detail }</p>
+			}
 		</div>
 	}
 }
