@@ -1,10 +1,13 @@
-.PHONY: build run dev test cover
+.PHONY: view-generate build run dev test cover
 
-build:
+view-generate:
+	templ generate
+
+build: view-generate
 	go build -o bin/server ./cmd/main.go
 
-run:
-	go run ./cmd/main.go
+run: build
+	./bin/server
 
 dev:
 	air
