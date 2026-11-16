@@ -59,6 +59,7 @@ func Check(ctx context.Context, links []string) []LinkStatus {
 
 		select {
 		case jobs <- link:
+			slog.Debug("[LinkChcker] Queud work for", "link", link)
 		case <-ctx.Done(): // user left, record it without checking
 			results <- LinkStatus{Url: link, Err: ctx.Err()}
 		}

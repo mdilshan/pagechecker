@@ -60,18 +60,19 @@ func (d *Document) DownloadDoc(
 	var body io.Reader = resp.Body
 
 	contentType := resp.Header.Get("Content-Type")
-	if contentType == "" { // server not sent it so let's try to mime sniff
-		bodyHead := make([]byte, 512)
-		n, err := io.ReadFull(resp.Body, bodyHead)
-		if err != nil && err != io.ErrUnexpectedEOF {
-			return fmt.Errorf("html detection: %w", err)
-		}
-		bodyHead = bodyHead[:n]
-		contentType = http.DetectContentType(bodyHead)
+	// if contentType == "" { // server not sent it so let's try to mime sniff
+	// }
 
-		// put the sniffed bytes back in front of the body
-		body = io.MultiReader(bytes.NewReader(bodyHead), resp.Body)
+	bodyHead := make([]byte, 512)
+	n, err := io.ReadFull(resp.Body, bodyHead)
+	if err != nil && err != io.ErrUnexpectedEOF {
+		return fmt.Errorf("html detection: %w", err)
 	}
+	bodyHead = bodyHead[:n]
+	contentType = http.DetectContentType(bodyHead)
+
+	// put the sniffed bytes back in front of the body
+	body = io.MultiReader(bytes.NewReader(bodyHead), resp.Body)
 
 	mType, _, err := mime.ParseMediaType(contentType)
 	if err != nil {

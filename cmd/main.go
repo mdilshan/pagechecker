@@ -68,6 +68,8 @@ func setupRouter(enablePprof bool) *gin.Engine {
 	})
 
 	r.POST("/analyze", func(c *gin.Context) {
+		reqCtx := c.Request.Context()
+		// reqCtx := c
 		var req analyzeRequest
 		if err := c.ShouldBind(&req); err != nil {
 			views.RenderHtml(c, http.StatusBadRequest,
@@ -81,7 +83,7 @@ func setupRouter(enablePprof bool) *gin.Engine {
 		var base *url.URL
 		var data analyzer.PageData
 		doc := downloader.Document{}
-		err := doc.DownloadDoc(c, req.URL, func(r io.Reader) error {
+		err := doc.DownloadDoc(reqCtx, req.URL, func(r io.Reader) error {
 			var err error
 			base, err = url.Parse(doc.Url)
 			if err != nil {
@@ -102,7 +104,7 @@ func setupRouter(enablePprof bool) *gin.Engine {
 			return
 		}
 
-		statuses := linkchecker.Check(c, data.Links)
+		statuses := linkchecker.Check(reqCtx, data.Links)
 
 		links := views.LinkStats{Inaccessible: len(data.MalformedLinks)}
 		for _, s := range statuses {
