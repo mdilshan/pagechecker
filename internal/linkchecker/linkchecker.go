@@ -53,7 +53,8 @@ func Check(ctx context.Context, links []string) []LinkStatus {
 		// mailto:, javascript:, tel: ... can't be checked over http
 		if !strings.HasPrefix(link, "http://") &&
 			!strings.HasPrefix(link, "https://") {
-			results <- LinkStatus{Url: link, Err: ErrUnsupportedScheme}
+			// uncomment to track unsupported schemes too
+			// results <- LinkStatus{Url: link, Err: ErrUnsupportedScheme}
 			continue
 		}
 

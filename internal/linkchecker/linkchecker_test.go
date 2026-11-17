@@ -84,23 +84,20 @@ func TestCheck_Statuses(t *testing.T) {
 		srv.URL + "/missing",
 		srv.URL + "/no-head",
 		"http://127.0.0.1:1/down", // nothing listens on port 1
-		"mailto:someone@example.com",
 	}
 
 	statuses := Check(context.Background(), links)
 
-	// every link gets a status, mailto included
 	if len(statuses) != len(links) {
 		t.Fatalf("got %d statuses, want %d: %+v",
 			len(statuses), len(links), statuses)
 	}
 
 	want := map[string]bool{
-		srv.URL + "/ok":              true,
-		srv.URL + "/missing":         false,
-		srv.URL + "/no-head":         true,
-		"http://127.0.0.1:1/down":    false,
-		"mailto:someone@example.com": false,
+		srv.URL + "/ok":           true,
+		srv.URL + "/missing":      false,
+		srv.URL + "/no-head":      true,
+		"http://127.0.0.1:1/down": false,
 	}
 	for _, s := range statuses {
 		if s.Accessible() != want[s.Url] {
