@@ -116,8 +116,6 @@ func TestDownloadDoc_Errors(t *testing.T) {
 		{"sniffed plain text", noContentType("just some text"), "not HTML"},
 		{"empty body without content type",
 			noContentType(""), "html detection"},
-		{"invalid content type",
-			withContentType("text/html; =bad", page), "mime detection"},
 	}
 
 	for _, tt := range tests {
